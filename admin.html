@@ -164,6 +164,16 @@
       border-radius: 20px;
     }
     .raw-time { font-size: 0.78rem; color: #475569; }
+    .del-btn {
+      padding: 2px 8px;
+      border: 1px solid #475569;
+      border-radius: 5px;
+      background: transparent;
+      color: #94A3B8;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .del-btn:hover { border-color: #EF4444; color: #EF4444; background: rgba(239,68,68,0.08); }
   </style>
 </head>
 <body>
@@ -244,10 +254,11 @@
             <th>協作</th>
             <th>總分</th>
             <th>時間</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="v-raw-body">
-          <tr><td colspan="10"><div class="empty-state">尚無資料</div></td></tr>
+          <tr><td colspan="11"><div class="empty-state">尚無資料</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -316,10 +327,11 @@
             <th>英文</th>
             <th>總分</th>
             <th>時間</th>
+            <th></th>
           </tr>
         </thead>
         <tbody id="t-raw-body">
-          <tr><td colspan="9"><div class="empty-state">尚無資料</div></td></tr>
+          <tr><td colspan="10"><div class="empty-state">尚無資料</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -328,7 +340,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-  import { getFirestore, collection, onSnapshot, orderBy, query }
+  import { getFirestore, collection, onSnapshot, orderBy, query, deleteDoc, doc }
     from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
   const firebaseConfig = {
@@ -431,10 +443,10 @@
 
     const rbody = document.getElementById('v-raw-body');
     if (!data.length) {
-      rbody.innerHTML = '<tr><td colspan="10"><div class="empty-state">尚無資料</div></td></tr>';
+      rbody.innerHTML = '<tr><td colspan="11"><div class="empty-state">尚無資料</div></td></tr>';
     } else {
       rbody.innerHTML = data.map(r => `
-        <tr>
+        <tr data-id="${r.id}" data-col="volunteer_scores">
           <td>${r.scorerName || '–'}</td>
           <td>${r.subject || '–'}</td>
           <td style="font-size:0.82rem;color:#94A3B8">${r.dept || '–'}</td>
@@ -445,6 +457,7 @@
           <td>${r.teamwork ?? '–'}</td>
           <td><strong>${r.total ?? '–'}</strong></td>
           <td class="raw-time">${fmtTime(r.submittedAt)}</td>
+          <td><button class="del-btn" onclick="deleteRecord('volunteer_scores','${r.id}')">刪除</button></td>
         </tr>`).join('');
     }
   }
@@ -478,7 +491,7 @@
 
     const rbody = document.getElementById('t-raw-body');
     if (!data.length) {
-      rbody.innerHTML = '<tr><td colspan="9"><div class="empty-state">尚無資料</div></td></tr>';
+      rbody.innerHTML = '<tr><td colspan="10"><div class="empty-state">尚無資料</div></td></tr>';
     } else {
       rbody.innerHTML = data.map(r => `
         <tr>
@@ -491,9 +504,15 @@
           <td>${r.englishReading ?? '–'}</td>
           <td><strong>${r.total ?? '–'}</strong></td>
           <td class="raw-time">${fmtTime(r.submittedAt)}</td>
+          <td><button class="del-btn" onclick="deleteRecord('teacher_scores','${r.id}')">刪除</button></td>
         </tr>`).join('');
     }
   }
+
+  window.deleteRecord = async function(colName, id) {
+    if (!confirm('確定刪除這筆評分？')) return;
+    await deleteDoc(doc(db, colName, id));
+  };
 
   // CSV export
   window.exportCSV = function(type) {
