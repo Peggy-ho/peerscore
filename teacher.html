@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>種子教師評分表 | PeerScore</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F0FDF4;
+      color: #1E293B;
+      padding: 20px 16px 60px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    }
+    h1 { font-size: 1.45rem; font-weight: 800; margin-bottom: 4px; }
+    .subtitle { font-size: 0.84rem; color: #64748B; margin-bottom: 28px; }
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.82rem;
+      color: #475569;
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    input[type="text"], select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 9px;
+      font-size: 1rem;
+      color: #1E293B;
+      background: #F8FAFC;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: #16A34A;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
+    }
+    .divider { border: none; border-top: 1.5px solid #F1F5F9; margin: 24px 0; }
+    .section-title {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #94A3B8;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 14px;
+    }
+
+    /* 每個人的評分區塊 */
+    .person-block {
+      border: 2px solid #E2E8F0;
+      border-radius: 14px;
+      padding: 20px 18px;
+      margin-bottom: 18px;
+    }
+    .person-block.has-error { border-color: #FCA5A5; }
+    .person-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .person-avatar {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #16A34A, #059669);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 800; font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .person-name { font-weight: 800; font-size: 1.05rem; }
+    .person-subtotal {
+      margin-left: auto;
+      font-size: 1.1rem;
+      font-weight: 900;
+      color: #16A34A;
+    }
+    .person-subtotal span { font-size: 0.75rem; color: #94A3B8; font-weight: 400; }
+
+    /* 評分項目 */
+    .criteria-block { margin-bottom: 14px; }
+    .criteria-block:last-child { margin-bottom: 0; }
+    .criteria-label {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 3px;
+    }
+    .criteria-desc {
+      font-size: 0.76rem;
+      color: #94A3B8;
+      margin-bottom: 9px;
+      line-height: 1.4;
+    }
+    .score-btns {
+      display: flex;
+      gap: 7px;
+    }
+    .score-btn {
+      flex: 1;
+      padding: 12px 0;
+      border: 2px solid #E2E8F0;
+      border-radius: 9px;
+      background: white;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      color: #94A3B8;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .score-btn:hover { border-color: #86EFAC; color: #16A34A; }
+    .score-btn.active {
+      background: #16A34A;
+      border-color: #16A34A;
+      color: white;
+      box-shadow: 0 2px 10px rgba(22,163,74,0.35);
+    }
+
+    /* 總覽 */
+    .total-summary {
+      background: linear-gradient(135deg, #16A34A 0%, #059669 100%);
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin: 24px 0 20px;
+      color: white;
+    }
+    .total-summary-title { font-size: 0.82rem; opacity: 0.8; font-weight: 600; margin-bottom: 10px; }
+    .total-summary-rows { display: flex; flex-direction: column; gap: 6px; }
+    .total-summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.92rem;
+    }
+    .total-summary-row .name { opacity: 0.85; }
+    .total-summary-row .score { font-weight: 800; }
+    .total-summary-row .score.incomplete { opacity: 0.5; font-style: italic; }
+
+    .submit-btn {
+      width: 100%;
+      padding: 15px;
+      background: #16A34A;
+      color: white;
+      border: none;
+      border-radius: 11px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 14px rgba(22,163,74,0.35);
+    }
+    .submit-btn:hover:not(:disabled) {
+      background: #15803D;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(22,163,74,0.4);
+    }
+    .submit-btn:active:not(:disabled) { transform: translateY(0); }
+    .submit-btn:disabled { background: #86EFAC; cursor: not-allowed; box-shadow: none; }
+
+    .empty-session {
+      text-align: center;
+      padding: 40px 20px;
+      color: #94A3B8;
+      font-size: 0.9rem;
+    }
+    .add-extra-btn {
+      width: 100%;
+      padding: 13px;
+      border: 2px dashed #A7F3D0;
+      border-radius: 12px;
+      background: transparent;
+      color: #6EE7B7;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 18px;
+      transition: all 0.2s;
+    }
+    .add-extra-btn:hover { border-color: #16A34A; color: #16A34A; background: #F0FDF4; }
+    .extra-block { border-style: dashed; border-color: #A7F3D0; background: #F0FDF4; }
+    .extra-avatar { background: linear-gradient(135deg, #F59E0B, #F97316) !important; }
+    .extra-name-input {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 7px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #1E293B;
+      background: white;
+      min-width: 0;
+    }
+    .extra-name-input:focus {
+      outline: none;
+      border-color: #16A34A;
+      box-shadow: 0 0 0 3px rgba(22,163,74,0.12);
+    }
+    .remove-extra-btn {
+      background: none;
+      border: none;
+      color: #CBD5E1;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 2px 4px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .remove-extra-btn:hover { color: #EF4444; }
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 13px 28px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: none;
+      z-index: 999;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+      white-space: nowrap;
+    }
+    .toast.success { background: #22C55E; color: white; }
+    .toast.error { background: #EF4444; color: white; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>種子教師評分表</h1>
+  <p class="subtitle">每項 1–5 分，共 4 項，單人總分 20 分</p>
+
+  <form id="form" novalidate>
+    <div class="field">
+      <label>評分者姓名</label>
+      <input type="text" id="scorerName" placeholder="請輸入你的名字" autocomplete="name">
+    </div>
+    <div class="field">
+      <label>評分場次</label>
+      <select id="sessionSelect">
+        <option value="">請選擇場次</option>
+      </select>
+    </div>
+
+    <hr class="divider">
+
+    <div id="scoringArea">
+      <div class="empty-session">請先選擇場次</div>
+    </div>
+
+    <div id="totalSummary" style="display:none">
+      <div class="total-summary">
+        <div class="total-summary-title">本場總覽</div>
+        <div class="total-summary-rows" id="summaryRows"></div>
+      </div>
+      <button type="submit" class="submit-btn" id="submitBtn">提交本場評分</button>
+    </div>
+  </form>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDH8E0P_xFK7bV4HAhXw28v6iaU-q2osmA",
+    authDomain: "peerscore-149ee.firebaseapp.com",
+    projectId: "peerscore-149ee",
+    storageBucket: "peerscore-149ee.firebasestorage.app",
+    messagingSenderId: "642817926973",
+    appId: "1:642817926973:web:3620f1285560ddd8e14754"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ===== 種子教師場次設定（依格式填入）=====
+  // { label: '第 N 場', members: ['姓名1', '姓名2', ...] }
+  const SESSIONS = [
+    { label: '上午場-【場次1】 12:15-12:35', members: ['施羽璇', '吳珮霓'] },
+    { label: '上午場-【場次2】 12:40-13:00', members: ['潘世鑫', '鄭宇珊'] },
+    { label: '上午場-【場次3】 13:05-13:35', members: [] }, // 現場機動確認
+    { label: '下午場-【場次1】 19:05-19:35', members: ['王羿蓁', '吳珮霓', '曾逸嘉'] },
+    { label: '下午場-【場次2】 19:40-20:10', members: ['陳思彤', '王姳蓉'] },
+  ];
+  // ==========================================
+
+  const CRITERIA = [
+    { id: 'presence',       label: '台風特質', desc: '是否自然大方、自信、有條理地表達想法' },
+    { id: 'lessonDemo',     label: '說課表現', desc: '課程流程是否清楚、有無結構與吸引力' },
+    { id: 'experience',     label: '經歷簡介', desc: '班控能力評估（帶團體課程、數位線上教學經驗）' },
+    { id: 'englishReading', label: '英文朗讀', desc: '發音清晰度、語調自然度、是否能模擬對小朋友說話' },
+  ];
+
+  // 場次下拉
+  const sel = document.getElementById('sessionSelect');
+  SESSIONS.forEach((s, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = s.label;
+    sel.appendChild(o);
+  });
+
+  // 記住評分者姓名
+  const saved = localStorage.getItem('teacher_scorer');
+  if (saved) document.getElementById('scorerName').value = saved;
+
+  sel.addEventListener('change', () => {
+    const idx = sel.value;
+    if (idx === '') {
+      document.getElementById('scoringArea').innerHTML = '<div class="empty-session">請先選擇場次</div>';
+      document.getElementById('totalSummary').style.display = 'none';
+      return;
+    }
+    renderSession(SESSIONS[idx]);
+    document.getElementById('totalSummary').style.display = 'block';
+  });
+
+  let scores = {};
+  let extrasList = [];
+  let nextMi = 0;
+
+  function renderSession(session) {
+    scores = {};
+    extrasList = [];
+    nextMi = session.members.length;
+
+    const area = document.getElementById('scoringArea');
+    area.innerHTML = '';
+
+    const sectionTitle = document.createElement('p');
+    sectionTitle.className = 'section-title';
+    sectionTitle.textContent = `${session.label}（${session.members.length} 人）`;
+    area.appendChild(sectionTitle);
+
+    session.members.forEach((name, mi) => {
+      scores[mi] = {};
+      CRITERIA.forEach(c => { scores[mi][c.id] = 0; });
+      area.appendChild(buildCard(mi, name, false, session));
+    });
+
+    const extrasWrap = document.createElement('div');
+    extrasWrap.id = 'extrasWrap';
+    area.appendChild(extrasWrap);
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'add-extra-btn';
+    addBtn.textContent = '+ 新增臨時參加者';
+    addBtn.addEventListener('click', () => {
+      const mi = nextMi++;
+      extrasList.push(mi);
+      scores[mi] = {};
+      CRITERIA.forEach(c => { scores[mi][c.id] = 0; });
+      extrasWrap.appendChild(buildCard(mi, null, true, session));
+      const card = document.getElementById(`person-${mi}`);
+      document.getElementById(`extra-name-${mi}`).addEventListener('input', () => updateSummary(session));
+      card.querySelector('.remove-extra-btn').addEventListener('click', () => {
+        extrasList = extrasList.filter(id => id !== mi);
+        delete scores[mi];
+        card.remove();
+        updateSummary(session);
+      });
+      updateSummary(session);
+    });
+    area.appendChild(addBtn);
+
+    updateSummary(session);
+  }
+
+  function buildCard(mi, name, isExtra, session) {
+    const block = document.createElement('div');
+    block.className = 'person-block' + (isExtra ? ' extra-block' : '');
+    block.id = `person-${mi}`;
+    block.innerHTML = `
+      <div class="person-header">
+        <div class="person-avatar${isExtra ? ' extra-avatar' : ''}">${isExtra ? '臨' : name[0]}</div>
+        ${isExtra
+          ? `<input type="text" class="extra-name-input" id="extra-name-${mi}" placeholder="輸入學生姓名">`
+          : `<span class="person-name">${name}</span>`}
+        <span class="person-subtotal" id="subtotal-${mi}">– <span>/ 20</span></span>
+        ${isExtra ? `<button type="button" class="remove-extra-btn" title="移除">✕</button>` : ''}
+      </div>
+      ${CRITERIA.map(c => `
+        <div class="criteria-block" id="cb-${c.id}-${mi}">
+          <div class="criteria-label">${c.label}</div>
+          <div class="criteria-desc">${c.desc}</div>
+          <div class="score-btns" data-person="${mi}" data-criteria="${c.id}">
+            ${[1,2,3,4,5].map(v => `<button type="button" class="score-btn" data-val="${v}">${v}</button>`).join('')}
+          </div>
+        </div>
+      `).join('')}
+    `;
+
+    block.querySelectorAll('.score-btns').forEach(group => {
+      const pIdx = parseInt(group.dataset.person);
+      const cId = group.dataset.criteria;
+      group.querySelectorAll('.score-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          group.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          scores[pIdx][cId] = parseInt(btn.dataset.val);
+          block.classList.remove('has-error');
+          updateSubtotal(pIdx);
+          updateSummary(session);
+        });
+      });
+    });
+
+    return block;
+  }
+
+  function getPersonTotal(mi) {
+    return Object.values(scores[mi] || {}).reduce((s, v) => s + v, 0);
+  }
+
+  function allFilledTeacher(mi) {
+    return scores[mi] && CRITERIA.every(c => scores[mi][c.id] > 0);
+  }
+
+  function updateSubtotal(mi) {
+    const total = getPersonTotal(mi);
+    document.getElementById(`subtotal-${mi}`).innerHTML = `${total} <span>/ 20</span>`;
+  }
+
+  function updateSummary(session) {
+    const allPersons = [
+      ...session.members.map((name, mi) => ({ name, mi })),
+      ...extrasList.map(mi => {
+        const el = document.getElementById(`extra-name-${mi}`);
+        return { name: el ? el.value.trim() : '', mi };
+      }).filter(p => p.name)
+    ];
+    document.getElementById('summaryRows').innerHTML = allPersons.map(({ name, mi }) => {
+      const filled = allFilledTeacher(mi);
+      return `<div class="total-summary-row">
+        <span class="name">${name}</span>
+        <span class="score${filled ? '' : ' incomplete'}">${filled ? `${getPersonTotal(mi)} / 20` : '未填完'}</span>
+      </div>`;
+    }).join('') || '<div style="opacity:0.5;font-size:0.85rem">尚無人員</div>';
+  }
+
+  document.getElementById('form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const scorerName = document.getElementById('scorerName').value.trim();
+    const sessionIdx = document.getElementById('sessionSelect').value;
+
+    if (!scorerName) { showToast('請輸入你的姓名', true); return; }
+    if (sessionIdx === '') { showToast('請選擇場次', true); return; }
+
+    const session = SESSIONS[sessionIdx];
+    let hasError = false;
+
+    const validate = (mi) => {
+      if (!allFilledTeacher(mi)) {
+        document.getElementById(`person-${mi}`).classList.add('has-error');
+        hasError = true;
+      }
+    };
+    session.members.forEach((_, mi) => validate(mi));
+    extrasList.forEach(mi => {
+      if (document.getElementById(`extra-name-${mi}`)?.value.trim()) validate(mi);
+    });
+
+    if (hasError) { showToast('有評分項目尚未填寫', true); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = '提交中…';
+    localStorage.setItem('teacher_scorer', scorerName);
+
+    const makeDoc = (name, mi, isExtra = false) => {
+      const s = scores[mi];
+      return addDoc(collection(db, 'teacher_scores'), {
+        scorerName, session: session.label, subject: name,
+        ...(isExtra && { isExtra: true }),
+        presence: s.presence, lessonDemo: s.lessonDemo,
+        experience: s.experience, englishReading: s.englishReading,
+        total: CRITERIA.reduce((t, c) => t + s[c.id], 0),
+        submittedAt: serverTimestamp()
+      });
+    };
+
+    const promises = [
+      ...session.members.map((name, mi) => makeDoc(name, mi)),
+      ...extrasList.map(mi => {
+        const name = document.getElementById(`extra-name-${mi}`)?.value.trim();
+        return name ? makeDoc(name, mi, true) : null;
+      }).filter(Boolean)
+    ];
+
+    try {
+      await Promise.all(promises);
+      showToast(`${session.label} 評分已提交！`, false);
+      document.getElementById('sessionSelect').value = '';
+      document.getElementById('scoringArea').innerHTML = '<div class="empty-session">請先選擇場次</div>';
+      document.getElementById('totalSummary').style.display = 'none';
+      scores = {}; extrasList = [];
+    } catch (err) {
+      console.error(err);
+      showToast('提交失敗，請稍後再試', true);
+    } finally {
+      btn.disabled = false; btn.textContent = '提交本場評分';
+    }
+  });
+
+  function showToast(msg, isError) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + (isError ? 'error' : 'success');
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+  }
+</script>
+</body>
+</html>

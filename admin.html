@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>後台管理 | PeerScore</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0F172A;
+      color: #E2E8F0;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+    .page-header {
+      max-width: 960px;
+      margin: 0 auto 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .page-title { font-size: 1.4rem; font-weight: 800; }
+    .live-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: #22C55E;
+      font-weight: 600;
+    }
+    .live-dot::before {
+      content: '';
+      width: 8px; height: 8px;
+      background: #22C55E;
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+    .tabs {
+      max-width: 960px;
+      margin: 0 auto 20px;
+      display: flex;
+      gap: 8px;
+    }
+    .tab {
+      padding: 10px 24px;
+      border-radius: 10px;
+      border: 1.5px solid #334155;
+      background: transparent;
+      color: #94A3B8;
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab.active-volunteer { background: #4F46E5; border-color: #4F46E5; color: white; }
+    .tab.active-teacher { background: #16A34A; border-color: #16A34A; color: white; }
+    .content { max-width: 960px; margin: 0 auto; display: none; }
+    .content.visible { display: block; }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #1E293B;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 16px 20px;
+    }
+    .stat-label { font-size: 0.75rem; color: #64748B; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+    .stat-val { font-size: 1.8rem; font-weight: 900; }
+    .stat-val.indigo { color: #818CF8; }
+    .stat-val.green { color: #4ADE80; }
+    .section {
+      background: #1E293B;
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .section-title { font-size: 0.9rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.06em; }
+    .export-btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: 1.5px solid #334155;
+      background: transparent;
+      color: #94A3B8;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .export-btn:hover { border-color: #64748B; color: #E2E8F0; background: #334155; }
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      min-width: 500px;
+    }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #64748B;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid #334155;
+      white-space: nowrap;
+    }
+    td {
+      padding: 11px 14px;
+      border-bottom: 1px solid #1E293B;
+      color: #CBD5E1;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #0F172A; }
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      font-weight: 800;
+      font-size: 0.85rem;
+    }
+    .rank-1 { background: #F59E0B; color: #1C1917; }
+    .rank-2 { background: #94A3B8; color: #0F172A; }
+    .rank-3 { background: #B45309; color: white; }
+    .rank-other { background: #334155; color: #94A3B8; }
+    .score-hi { color: #4ADE80; font-weight: 700; }
+    .score-mid { color: #FDE68A; font-weight: 700; }
+    .score-lo { color: #FCA5A5; font-weight: 700; }
+    .avg-total { font-size: 1rem; font-weight: 900; }
+    .empty-state {
+      text-align: center;
+      padding: 48px 20px;
+      color: #475569;
+    }
+    .empty-state p { font-size: 0.9rem; margin-top: 8px; }
+    .scorers-count {
+      font-size: 0.75rem;
+      background: #0F172A;
+      color: #64748B;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+    .raw-time { font-size: 0.78rem; color: #475569; }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <div class="page-title">PeerScore 後台</div>
+  </div>
+  <span class="live-dot">即時更新</span>
+</div>
+
+<div class="tabs">
+  <button class="tab active-volunteer" id="tabVolunteer" onclick="switchTab('volunteer')">志工評分</button>
+  <button class="tab" id="tabTeacher" onclick="switchTab('teacher')">種子教師評分</button>
+</div>
+
+<!-- 志工 -->
+<div class="content visible" id="panelVolunteer">
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">總評分筆數</div>
+      <div class="stat-val indigo" id="v-totalCount">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">已評人數</div>
+      <div class="stat-val indigo" id="v-subjectCount">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">目前第一名</div>
+      <div class="stat-val indigo" id="v-topName" style="font-size:1.1rem;line-height:1.6">–</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">彙整排名</span>
+      <button class="export-btn" onclick="exportCSV('volunteer')">匯出 CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table id="v-summary-table">
+        <thead>
+          <tr>
+            <th>名次</th>
+            <th>姓名</th>
+            <th>溝通表達</th>
+            <th>應變能力</th>
+            <th>服務熱忱</th>
+            <th>時間配合度</th>
+            <th>團隊協作</th>
+            <th>平均總分</th>
+            <th>評分人數</th>
+          </tr>
+        </thead>
+        <tbody id="v-summary-body">
+          <tr><td colspan="9"><div class="empty-state">等待評分資料…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">所有評分紀錄</span>
+      <button class="export-btn" onclick="exportRawCSV('volunteer')">匯出原始資料</button>
+    </div>
+    <div class="table-wrap">
+      <table id="v-raw-table">
+        <thead>
+          <tr>
+            <th>評分者</th>
+            <th>被評志工</th>
+            <th>溝通</th>
+            <th>應變</th>
+            <th>熱忱</th>
+            <th>時間</th>
+            <th>協作</th>
+            <th>總分</th>
+            <th>時間</th>
+          </tr>
+        </thead>
+        <tbody id="v-raw-body">
+          <tr><td colspan="9"><div class="empty-state">尚無資料</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 種子教師 -->
+<div class="content" id="panelTeacher">
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">總評分筆數</div>
+      <div class="stat-val green" id="t-totalCount">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">已評人數</div>
+      <div class="stat-val green" id="t-subjectCount">–</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">目前第一名</div>
+      <div class="stat-val green" id="t-topName" style="font-size:1.1rem;line-height:1.6">–</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">彙整排名</span>
+      <button class="export-btn" onclick="exportCSV('teacher')">匯出 CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table id="t-summary-table">
+        <thead>
+          <tr>
+            <th>名次</th>
+            <th>姓名</th>
+            <th>台風特質</th>
+            <th>說課表現</th>
+            <th>經歷簡介</th>
+            <th>英文朗讀</th>
+            <th>總分合計</th>
+            <th>評分人數</th>
+          </tr>
+        </thead>
+        <tbody id="t-summary-body">
+          <tr><td colspan="8"><div class="empty-state">等待評分資料…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">所有評分紀錄</span>
+      <button class="export-btn" onclick="exportRawCSV('teacher')">匯出原始資料</button>
+    </div>
+    <div class="table-wrap">
+      <table id="t-raw-table">
+        <thead>
+          <tr>
+            <th>評分者</th>
+            <th>被評教師</th>
+            <th>台風</th>
+            <th>說課</th>
+            <th>經歷</th>
+            <th>英文</th>
+            <th>總分</th>
+            <th>時間</th>
+          </tr>
+        </thead>
+        <tbody id="t-raw-body">
+          <tr><td colspan="8"><div class="empty-state">尚無資料</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+  import { getFirestore, collection, onSnapshot, orderBy, query }
+    from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDH8E0P_xFK7bV4HAhXw28v6iaU-q2osmA",
+    authDomain: "peerscore-149ee.firebaseapp.com",
+    projectId: "peerscore-149ee",
+    storageBucket: "peerscore-149ee.firebasestorage.app",
+    messagingSenderId: "642817926973",
+    appId: "1:642817926973:web:3620f1285560ddd8e14754"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  const V_CRITERIA = ['communication', 'adaptability', 'enthusiasm', 'availability', 'teamwork'];
+  const T_CRITERIA = ['presence', 'lessonDemo', 'experience', 'englishReading'];
+
+  let vData = [], tData = [];
+
+  // Volunteer listener
+  onSnapshot(
+    query(collection(db, 'volunteer_scores'), orderBy('submittedAt', 'desc')),
+    snap => {
+      vData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderVolunteer(vData);
+    }
+  );
+
+  // Teacher listener
+  onSnapshot(
+    query(collection(db, 'teacher_scores'), orderBy('submittedAt', 'desc')),
+    snap => {
+      tData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      renderTeacher(tData);
+    }
+  );
+
+  function aggregate(data, criteria) {
+    const map = {};
+    data.forEach(row => {
+      if (!row.subject) return;
+      if (!map[row.subject]) {
+        map[row.subject] = { subject: row.subject, count: 0, totals: {} };
+        criteria.forEach(c => { map[row.subject].totals[c] = 0; });
+        map[row.subject].totalSum = 0;
+      }
+      const entry = map[row.subject];
+      entry.count++;
+      criteria.forEach(c => { entry.totals[c] += (row[c] || 0); });
+      entry.totalSum += (row.total || 0);
+    });
+    return Object.values(map)
+      .map(e => ({
+        ...e,
+        avgs: Object.fromEntries(criteria.map(c => [c, e.totals[c] / e.count])),
+        avgTotal: e.totalSum / e.count
+      }))
+      .sort((a, b) => b.avgTotal - a.avgTotal);
+  }
+
+  function scoreClass(val, max) {
+    const pct = val / max;
+    if (pct >= 0.8) return 'score-hi';
+    if (pct >= 0.5) return 'score-mid';
+    return 'score-lo';
+  }
+
+  function fmtTime(ts) {
+    if (!ts) return '–';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleString('zh-TW', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function rankBadge(i) {
+    const cls = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
+    return `<span class="rank-badge ${cls}">${i + 1}</span>`;
+  }
+
+  function renderVolunteer(data) {
+    document.getElementById('v-totalCount').textContent = data.length;
+    const agg = aggregate(data, V_CRITERIA);
+    document.getElementById('v-subjectCount').textContent = agg.length;
+    document.getElementById('v-topName').textContent = agg.length ? agg[0].subject : '–';
+
+    const sbody = document.getElementById('v-summary-body');
+    if (!agg.length) {
+      sbody.innerHTML = '<tr><td colspan="9"><div class="empty-state">尚無資料</div></td></tr>';
+    } else {
+      sbody.innerHTML = agg.map((row, i) => `
+        <tr>
+          <td>${rankBadge(i)}</td>
+          <td><strong>${row.subject}</strong></td>
+          ${V_CRITERIA.map(c => `<td class="${scoreClass(row.avgs[c], 20)}">${row.avgs[c].toFixed(1)}</td>`).join('')}
+          <td class="avg-total ${scoreClass(row.avgTotal, 100)}">${row.avgTotal.toFixed(1)}</td>
+          <td><span class="scorers-count">${row.count} 人</span></td>
+        </tr>`).join('');
+    }
+
+    const rbody = document.getElementById('v-raw-body');
+    if (!data.length) {
+      rbody.innerHTML = '<tr><td colspan="9"><div class="empty-state">尚無資料</div></td></tr>';
+    } else {
+      rbody.innerHTML = data.map(r => `
+        <tr>
+          <td>${r.scorerName || '–'}</td>
+          <td>${r.subject || '–'}</td>
+          <td>${r.communication ?? '–'}</td>
+          <td>${r.adaptability ?? '–'}</td>
+          <td>${r.enthusiasm ?? '–'}</td>
+          <td>${r.availability ?? '–'}</td>
+          <td>${r.teamwork ?? '–'}</td>
+          <td><strong>${r.total ?? '–'}</strong></td>
+          <td class="raw-time">${fmtTime(r.submittedAt)}</td>
+        </tr>`).join('');
+    }
+  }
+
+  function renderTeacher(data) {
+    document.getElementById('t-totalCount').textContent = data.length;
+    const agg = aggregate(data, T_CRITERIA).sort((a, b) => b.totalSum - a.totalSum);
+    document.getElementById('t-subjectCount').textContent = agg.length;
+    document.getElementById('t-topName').textContent = agg.length ? agg[0].subject : '–';
+
+    const sbody = document.getElementById('t-summary-body');
+    if (!agg.length) {
+      sbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">尚無資料</div></td></tr>';
+    } else {
+      sbody.innerHTML = agg.map((row, i) => `
+        <tr>
+          <td>${rankBadge(i)}</td>
+          <td><strong>${row.subject}</strong></td>
+          ${T_CRITERIA.map(c => `<td class="${scoreClass(row.totals[c], 5 * row.count)}">${row.totals[c]}</td>`).join('')}
+          <td class="avg-total ${scoreClass(row.totalSum, 20 * row.count)}">${row.totalSum}</td>
+          <td><span class="scorers-count">${row.count} 人</span></td>
+        </tr>`).join('');
+    }
+
+    const rbody = document.getElementById('t-raw-body');
+    if (!data.length) {
+      rbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">尚無資料</div></td></tr>';
+    } else {
+      rbody.innerHTML = data.map(r => `
+        <tr>
+          <td>${r.scorerName || '–'}</td>
+          <td>${r.subject || '–'}</td>
+          <td>${r.presence ?? '–'}</td>
+          <td>${r.lessonDemo ?? '–'}</td>
+          <td>${r.experience ?? '–'}</td>
+          <td>${r.englishReading ?? '–'}</td>
+          <td><strong>${r.total ?? '–'}</strong></td>
+          <td class="raw-time">${fmtTime(r.submittedAt)}</td>
+        </tr>`).join('');
+    }
+  }
+
+  // CSV export
+  window.exportCSV = function(type) {
+    if (type === 'volunteer') {
+      const agg = aggregate(vData, V_CRITERIA);
+      const headers = ['名次', '姓名', '溝通表達', '應變能力', '服務熱忱', '時間配合度', '團隊協作', '平均總分', '評分人數'];
+      const rows = agg.map((row, i) => [
+        i + 1, row.subject,
+        row.avgs.communication.toFixed(1), row.avgs.adaptability.toFixed(1),
+        row.avgs.enthusiasm.toFixed(1), row.avgs.availability.toFixed(1),
+        row.avgs.teamwork.toFixed(1), row.avgTotal.toFixed(1), row.count
+      ]);
+      downloadCSV([headers, ...rows], '志工評分彙整.csv');
+    } else {
+      const agg = aggregate(tData, T_CRITERIA).sort((a, b) => b.totalSum - a.totalSum);
+      const headers = ['名次', '姓名', '台風特質', '說課表現', '經歷簡介', '英文朗讀', '總分合計', '評分人數'];
+      const rows = agg.map((row, i) => [
+        i + 1, row.subject,
+        row.totals.presence, row.totals.lessonDemo,
+        row.totals.experience, row.totals.englishReading,
+        row.totalSum, row.count
+      ]);
+      downloadCSV([headers, ...rows], '種子教師評分彙整.csv');
+    }
+  };
+
+  window.exportRawCSV = function(type) {
+    if (type === 'volunteer') {
+      const headers = ['評分者', '被評志工', '溝通表達', '應變能力', '服務熱忱', '時間配合度', '團隊協作', '總分', '時間'];
+      const rows = vData.map(r => [
+        r.scorerName, r.subject,
+        r.communication, r.adaptability, r.enthusiasm, r.availability, r.teamwork,
+        r.total, fmtTime(r.submittedAt)
+      ]);
+      downloadCSV([headers, ...rows], '志工評分原始資料.csv');
+    } else {
+      const headers = ['評分者', '被評教師', '台風特質', '說課表現', '經歷簡介', '英文朗讀', '總分', '時間'];
+      const rows = tData.map(r => [
+        r.scorerName, r.subject,
+        r.presence, r.lessonDemo, r.experience, r.englishReading,
+        r.total, fmtTime(r.submittedAt)
+      ]);
+      downloadCSV([headers, ...rows], '種子教師評分原始資料.csv');
+    }
+  };
+
+  function downloadCSV(rows, filename) {
+    const csv = rows.map(r => r.map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  window.switchTab = function(tab) {
+    document.getElementById('panelVolunteer').classList.toggle('visible', tab === 'volunteer');
+    document.getElementById('panelTeacher').classList.toggle('visible', tab === 'teacher');
+    document.getElementById('tabVolunteer').className = 'tab' + (tab === 'volunteer' ? ' active-volunteer' : '');
+    document.getElementById('tabTeacher').className = 'tab' + (tab === 'teacher' ? ' active-teacher' : '');
+  };
+</script>
+</body>
+</html>

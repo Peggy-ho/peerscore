@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>志工評分表 | PeerScore</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F1F5F9;
+      color: #1E293B;
+      padding: 20px 16px 60px;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 640px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    }
+    h1 { font-size: 1.45rem; font-weight: 800; margin-bottom: 4px; }
+    .subtitle { font-size: 0.84rem; color: #64748B; margin-bottom: 28px; }
+    .field { margin-bottom: 20px; }
+    .field label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.82rem;
+      color: #475569;
+      margin-bottom: 7px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    input[type="text"], select {
+      width: 100%;
+      padding: 11px 14px;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 9px;
+      font-size: 1rem;
+      color: #1E293B;
+      background: #F8FAFC;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="text"]:focus, select:focus {
+      outline: none;
+      border-color: #6366F1;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+    .divider { border: none; border-top: 1.5px solid #F1F5F9; margin: 24px 0; }
+    .section-title {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #94A3B8;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 14px;
+    }
+
+    /* 每個人的評分區塊 */
+    .person-block {
+      border: 2px solid #E2E8F0;
+      border-radius: 14px;
+      padding: 20px 18px;
+      margin-bottom: 18px;
+    }
+    .person-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .person-avatar {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #6366F1, #8B5CF6);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 800; font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .person-name { font-weight: 800; font-size: 1.05rem; }
+    .person-subtotal {
+      margin-left: auto;
+      font-size: 1.1rem;
+      font-weight: 900;
+      color: #4F46E5;
+    }
+    .person-subtotal span { font-size: 0.75rem; color: #94A3B8; font-weight: 400; }
+
+    .score-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .score-row:last-child { margin-bottom: 0; }
+    .score-row-label {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: #374151;
+      flex: 1;
+    }
+    .score-row-hint {
+      font-size: 0.76rem;
+      color: #CBD5E1;
+      margin-right: 6px;
+    }
+    input[type="number"] {
+      width: 72px;
+      padding: 8px 10px;
+      border: 2px solid #E2E8F0;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #4F46E5;
+      text-align: center;
+      background: #F8FAFC;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    input[type="number"]:focus {
+      outline: none;
+      border-color: #6366F1;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+    input[type="number"].error { border-color: #EF4444; }
+
+    /* 總覽列 */
+    .total-summary {
+      background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+      border-radius: 14px;
+      padding: 18px 22px;
+      margin: 24px 0 20px;
+      color: white;
+    }
+    .total-summary-title { font-size: 0.82rem; opacity: 0.8; font-weight: 600; margin-bottom: 10px; }
+    .total-summary-rows { display: flex; flex-direction: column; gap: 6px; }
+    .total-summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.92rem;
+    }
+    .total-summary-row .name { opacity: 0.85; }
+    .total-summary-row .score { font-weight: 800; }
+
+    .submit-btn {
+      width: 100%;
+      padding: 15px;
+      background: #4F46E5;
+      color: white;
+      border: none;
+      border-radius: 11px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+      transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 14px rgba(79,70,229,0.35);
+    }
+    .submit-btn:hover:not(:disabled) {
+      background: #4338CA;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(79,70,229,0.4);
+    }
+    .submit-btn:active:not(:disabled) { transform: translateY(0); }
+    .submit-btn:disabled { background: #A5B4FC; cursor: not-allowed; box-shadow: none; }
+
+    .empty-session {
+      text-align: center;
+      padding: 40px 20px;
+      color: #94A3B8;
+      font-size: 0.9rem;
+    }
+    .add-extra-btn {
+      width: 100%;
+      padding: 13px;
+      border: 2px dashed #CBD5E1;
+      border-radius: 12px;
+      background: transparent;
+      color: #94A3B8;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 18px;
+      transition: all 0.2s;
+    }
+    .add-extra-btn:hover { border-color: #6366F1; color: #6366F1; background: #EEF2FF; }
+    .extra-block { border-style: dashed; border-color: #C7D2FE; background: #F5F3FF; }
+    .extra-avatar { background: linear-gradient(135deg, #F59E0B, #F97316) !important; }
+    .extra-name-input {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 7px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #1E293B;
+      background: white;
+      min-width: 0;
+    }
+    .extra-name-input:focus {
+      outline: none;
+      border-color: #6366F1;
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.12);
+    }
+    .remove-extra-btn {
+      background: none;
+      border: none;
+      color: #CBD5E1;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 2px 4px;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .remove-extra-btn:hover { color: #EF4444; }
+
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 13px 28px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: none;
+      z-index: 999;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+      white-space: nowrap;
+    }
+    .toast.success { background: #22C55E; color: white; }
+    .toast.error { background: #EF4444; color: white; }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>志工評分表</h1>
+  <p class="subtitle">每項 1–20 分，共 5 項，單人總分 100 分</p>
+
+  <form id="form" novalidate>
+    <div class="field">
+      <label>評分者姓名</label>
+      <input type="text" id="scorerName" placeholder="請輸入你的名字" autocomplete="name">
+    </div>
+    <div class="field">
+      <label>評分場次</label>
+      <select id="sessionSelect">
+        <option value="">請選擇場次</option>
+      </select>
+    </div>
+
+    <hr class="divider">
+
+    <div id="scoringArea">
+      <div class="empty-session">請先選擇場次</div>
+    </div>
+
+    <div id="totalSummary" style="display:none">
+      <div class="total-summary">
+        <div class="total-summary-title">本場總覽</div>
+        <div class="total-summary-rows" id="summaryRows"></div>
+      </div>
+      <button type="submit" class="submit-btn" id="submitBtn">提交本場評分</button>
+    </div>
+  </form>
+</div>
+<div class="toast" id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, serverTimestamp }
+    from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyDH8E0P_xFK7bV4HAhXw28v6iaU-q2osmA",
+    authDomain: "peerscore-149ee.firebaseapp.com",
+    projectId: "peerscore-149ee",
+    storageBucket: "peerscore-149ee.firebasestorage.app",
+    messagingSenderId: "642817926973",
+    appId: "1:642817926973:web:3620f1285560ddd8e14754"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // ===== 志工場次設定（依格式填入）=====
+  // { label: '第 N 場', members: ['姓名1', '姓名2', ...] }
+  const SESSIONS = [
+    { label: '上午場-【場次1】 12:15-12:35', members: ['許昀茹', '吳景渝'] },
+    { label: '上午場-【場次2】 12:40-13:00', members: ['Julie Yaki', '洪正欣'] },
+    { label: '上午場-【場次3】 13:05-13:35', members: ['郭詠婕', '潘世鑫', '蔡宓杞'] },
+    { label: '下午場-【場次1】 19:05-19:35', members: ['陳思彤', '羅英綸', '杜玉祥薇', '邱憶詩'] },
+    { label: '下午場-【場次2】 19:40-20:10', members: ['王羿蓁', '陳映希', '黃俊德', '吳昕恬', '曾逸嘉'] },
+  ];
+  // =====================================
+
+  const CRITERIA = [
+    { id: 'communication', label: '溝通表達' },
+    { id: 'adaptability',  label: '應變能力' },
+    { id: 'enthusiasm',    label: '服務熱忱' },
+    { id: 'availability',  label: '時間配合度' },
+    { id: 'teamwork',      label: '團隊協作' },
+  ];
+
+  const sel = document.getElementById('sessionSelect');
+  SESSIONS.forEach((s, i) => {
+    const o = document.createElement('option');
+    o.value = i; o.textContent = s.label;
+    sel.appendChild(o);
+  });
+
+  const saved = localStorage.getItem('volunteer_scorer');
+  if (saved) document.getElementById('scorerName').value = saved;
+
+  let extrasList = [];
+  let nextMi = 0;
+
+  sel.addEventListener('change', () => {
+    const idx = sel.value;
+    if (idx === '') {
+      document.getElementById('scoringArea').innerHTML = '<div class="empty-session">請先選擇場次</div>';
+      document.getElementById('totalSummary').style.display = 'none';
+      return;
+    }
+    renderSession(SESSIONS[idx]);
+    document.getElementById('totalSummary').style.display = 'block';
+  });
+
+  function renderSession(session) {
+    extrasList = [];
+    nextMi = session.members.length;
+
+    const area = document.getElementById('scoringArea');
+    area.innerHTML = '';
+
+    const sectionTitle = document.createElement('p');
+    sectionTitle.className = 'section-title';
+    sectionTitle.textContent = `${session.label}（${session.members.length} 人）`;
+    area.appendChild(sectionTitle);
+
+    session.members.forEach((name, mi) => {
+      area.appendChild(buildCard(mi, name, false));
+      bindInputs(mi, session);
+    });
+
+    const extrasWrap = document.createElement('div');
+    extrasWrap.id = 'extrasWrap';
+    area.appendChild(extrasWrap);
+
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'add-extra-btn';
+    addBtn.textContent = '+ 新增臨時參加者';
+    addBtn.addEventListener('click', () => {
+      const mi = nextMi++;
+      extrasList.push(mi);
+      extrasWrap.appendChild(buildCard(mi, null, true));
+      bindInputs(mi, session);
+      const card = document.getElementById(`person-${mi}`);
+      document.getElementById(`extra-name-${mi}`).addEventListener('input', () => updateSummary(session));
+      card.querySelector('.remove-extra-btn').addEventListener('click', () => {
+        extrasList = extrasList.filter(id => id !== mi);
+        card.remove();
+        updateSummary(session);
+      });
+      updateSummary(session);
+    });
+    area.appendChild(addBtn);
+
+    updateSummary(session);
+  }
+
+  function buildCard(mi, name, isExtra) {
+    const block = document.createElement('div');
+    block.className = 'person-block' + (isExtra ? ' extra-block' : '');
+    block.id = `person-${mi}`;
+    block.innerHTML = `
+      <div class="person-header">
+        <div class="person-avatar${isExtra ? ' extra-avatar' : ''}">${isExtra ? '臨' : name[0]}</div>
+        ${isExtra
+          ? `<input type="text" class="extra-name-input" id="extra-name-${mi}" placeholder="輸入學生姓名">`
+          : `<span class="person-name">${name}</span>`}
+        <span class="person-subtotal" id="subtotal-${mi}">– <span>/ 100</span></span>
+        ${isExtra ? `<button type="button" class="remove-extra-btn" title="移除">✕</button>` : ''}
+      </div>
+      ${CRITERIA.map(c => `
+        <div class="score-row">
+          <span class="score-row-label">${c.label}</span>
+          <span class="score-row-hint">1–20</span>
+          <input type="number" id="${c.id}-${mi}" min="1" max="20" placeholder="–" inputmode="numeric">
+        </div>
+      `).join('')}
+    `;
+    return block;
+  }
+
+  function bindInputs(mi, session) {
+    CRITERIA.forEach(c => {
+      document.getElementById(`${c.id}-${mi}`).addEventListener('input', function () {
+        let v = parseInt(this.value);
+        if (!isNaN(v)) {
+          if (v < 1) this.value = 1;
+          if (v > 20) this.value = 20;
+        }
+        this.classList.remove('error');
+        updateSubtotal(mi);
+        updateSummary(session);
+      });
+    });
+  }
+
+  function getPersonScore(mi) {
+    return CRITERIA.reduce((s, c) => {
+      const v = parseInt(document.getElementById(`${c.id}-${mi}`).value);
+      return s + (isNaN(v) ? 0 : v);
+    }, 0);
+  }
+
+  function allFilled(mi) {
+    return CRITERIA.every(c => {
+      const v = parseInt(document.getElementById(`${c.id}-${mi}`).value);
+      return !isNaN(v) && v >= 1 && v <= 20;
+    });
+  }
+
+  function updateSubtotal(mi) {
+    document.getElementById(`subtotal-${mi}`).innerHTML =
+      allFilled(mi) ? `${getPersonScore(mi)} <span>/ 100</span>` : `– <span>/ 100</span>`;
+  }
+
+  function updateSummary(session) {
+    const allPersons = [
+      ...session.members.map((name, mi) => ({ name, mi })),
+      ...extrasList.map(mi => {
+        const el = document.getElementById(`extra-name-${mi}`);
+        return { name: el ? el.value.trim() : '', mi };
+      }).filter(p => p.name)
+    ];
+    document.getElementById('summaryRows').innerHTML = allPersons.map(({ name, mi }) =>
+      `<div class="total-summary-row">
+        <span class="name">${name}</span>
+        <span class="score${allFilled(mi) ? '' : ' incomplete'}">${allFilled(mi) ? `${getPersonScore(mi)} / 100` : '未填完'}</span>
+      </div>`
+    ).join('') || '<div style="opacity:0.5;font-size:0.85rem">尚無人員</div>';
+  }
+
+  document.getElementById('form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const scorerName = document.getElementById('scorerName').value.trim();
+    const sessionIdx = document.getElementById('sessionSelect').value;
+
+    if (!scorerName) { showToast('請輸入你的姓名', true); return; }
+    if (sessionIdx === '') { showToast('請選擇場次', true); return; }
+
+    const session = SESSIONS[sessionIdx];
+    let hasError = false;
+
+    const validate = (mi) => {
+      CRITERIA.forEach(c => {
+        const input = document.getElementById(`${c.id}-${mi}`);
+        const v = parseInt(input.value);
+        if (isNaN(v) || v < 1 || v > 20) { input.classList.add('error'); hasError = true; }
+      });
+    };
+    session.members.forEach((_, mi) => validate(mi));
+    extrasList.forEach(mi => {
+      if (document.getElementById(`extra-name-${mi}`)?.value.trim()) validate(mi);
+    });
+
+    if (hasError) { showToast('有欄位未填或超出範圍（1–20）', true); return; }
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true; btn.textContent = '提交中…';
+    localStorage.setItem('volunteer_scorer', scorerName);
+
+    const makeDoc = (name, mi, isExtra = false) => {
+      const s = {};
+      CRITERIA.forEach(c => { s[c.id] = parseInt(document.getElementById(`${c.id}-${mi}`).value); });
+      return addDoc(collection(db, 'volunteer_scores'), {
+        scorerName, session: session.label, subject: name,
+        ...(isExtra && { isExtra: true }), ...s,
+        total: CRITERIA.reduce((t, c) => t + s[c.id], 0),
+        submittedAt: serverTimestamp()
+      });
+    };
+
+    const promises = [
+      ...session.members.map((name, mi) => makeDoc(name, mi)),
+      ...extrasList.map(mi => {
+        const name = document.getElementById(`extra-name-${mi}`)?.value.trim();
+        return name ? makeDoc(name, mi, true) : null;
+      }).filter(Boolean)
+    ];
+
+    try {
+      await Promise.all(promises);
+      showToast(`${session.label} 評分已提交！`, false);
+      document.getElementById('sessionSelect').value = '';
+      document.getElementById('scoringArea').innerHTML = '<div class="empty-session">請先選擇場次</div>';
+      document.getElementById('totalSummary').style.display = 'none';
+      extrasList = [];
+    } catch (err) {
+      console.error(err);
+      showToast('提交失敗，請稍後再試', true);
+    } finally {
+      btn.disabled = false; btn.textContent = '提交本場評分';
+    }
+  });
+
+  function showToast(msg, isError) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast ' + (isError ? 'error' : 'success');
+    t.style.display = 'block';
+    setTimeout(() => { t.style.display = 'none'; }, 3000);
+  }
+</script>
+</body>
+</html>
