@@ -83,6 +83,7 @@
       flex-shrink: 0;
     }
     .person-name { font-weight: 800; font-size: 1.05rem; }
+    .person-dept { font-size: 0.78rem; color: #64748B; margin-top: 1px; }
     .person-subtotal {
       margin-left: auto;
       font-size: 1.1rem;
@@ -290,16 +291,28 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // ===== 種子教師場次設定（依格式填入）=====
-  // { label: '第 N 場', members: ['姓名1', '姓名2', ...] }
+  // ===== 種子教師場次設定 =====
   const SESSIONS = [
-    { label: '上午場-【場次1】 12:15-12:35', members: ['施羽璇', '吳珮霓'] },
-    { label: '上午場-【場次2】 12:40-13:00', members: ['潘世鑫', '鄭宇珊'] },
+    { label: '上午場-【場次1】 12:15-12:35', members: [
+      { name: '施羽璇', dept: '財金系／大三' },
+      { name: '吳珮霓', dept: '材料系／大二' },
+    ]},
+    { label: '上午場-【場次2】 12:40-13:00', members: [
+      { name: '潘世鑫', dept: '英美系／大三' },
+      { name: '鄭宇珊', dept: '英美系／大四' },
+    ]},
     { label: '上午場-【場次3】 13:05-13:35', members: [] }, // 現場機動確認
-    { label: '下午場-【場次1】 19:05-19:35', members: ['王羿蓁', '吳珮霓', '曾逸嘉'] },
-    { label: '下午場-【場次2】 19:40-20:10', members: ['陳思彤', '王姳蓉'] },
+    { label: '下午場-【場次1】 19:05-19:35', members: [
+      { name: '王羿蓁', dept: '資管系／大一' },
+      { name: '吳珮霓', dept: '材料系／大二' },
+      { name: '曾逸嘉', dept: '資管系／大一' },
+    ]},
+    { label: '下午場-【場次2】 19:40-20:10', members: [
+      { name: '陳思彤', dept: '資工系／大一' },
+      { name: '王姳蓉', dept: '資管系／大一' },
+    ]},
   ];
-  // ==========================================
+  // ============================
 
   const CRITERIA = [
     { id: 'presence',       label: '台風特質', desc: '是否自然大方、自信、有條理地表達想法' },
@@ -348,10 +361,10 @@
     sectionTitle.textContent = `${session.label}（${session.members.length} 人）`;
     area.appendChild(sectionTitle);
 
-    session.members.forEach((name, mi) => {
+    session.members.forEach((member, mi) => {
       scores[mi] = {};
       CRITERIA.forEach(c => { scores[mi][c.id] = 0; });
-      area.appendChild(buildCard(mi, name, false, session));
+      area.appendChild(buildCard(mi, member.name, member.dept, false, session));
     });
 
     const extrasWrap = document.createElement('div');
@@ -367,7 +380,7 @@
       extrasList.push(mi);
       scores[mi] = {};
       CRITERIA.forEach(c => { scores[mi][c.id] = 0; });
-      extrasWrap.appendChild(buildCard(mi, null, true, session));
+      extrasWrap.appendChild(buildCard(mi, null, '', true, session));
       const card = document.getElementById(`person-${mi}`);
       document.getElementById(`extra-name-${mi}`).addEventListener('input', () => updateSummary(session));
       card.querySelector('.remove-extra-btn').addEventListener('click', () => {
@@ -383,7 +396,7 @@
     updateSummary(session);
   }
 
-  function buildCard(mi, name, isExtra, session) {
+  function buildCard(mi, name, dept, isExtra, session) {
     const block = document.createElement('div');
     block.className = 'person-block' + (isExtra ? ' extra-block' : '');
     block.id = `person-${mi}`;
@@ -392,7 +405,7 @@
         <div class="person-avatar${isExtra ? ' extra-avatar' : ''}">${isExtra ? '臨' : name[0]}</div>
         ${isExtra
           ? `<input type="text" class="extra-name-input" id="extra-name-${mi}" placeholder="輸入學生姓名">`
-          : `<span class="person-name">${name}</span>`}
+          : `<div><span class="person-name">${name}</span>${dept ? `<div class="person-dept">${dept}</div>` : ''}</div>`}
         <span class="person-subtotal" id="subtotal-${mi}">– <span>/ 20</span></span>
         ${isExtra ? `<button type="button" class="remove-extra-btn" title="移除">✕</button>` : ''}
       </div>
@@ -440,7 +453,7 @@
 
   function updateSummary(session) {
     const allPersons = [
-      ...session.members.map((name, mi) => ({ name, mi })),
+      ...session.members.map((member, mi) => ({ name: member.name, mi })),
       ...extrasList.map(mi => {
         const el = document.getElementById(`extra-name-${mi}`);
         return { name: el ? el.value.trim() : '', mi };
@@ -483,10 +496,11 @@
     btn.disabled = true; btn.textContent = '提交中…';
     localStorage.setItem('teacher_scorer', scorerName);
 
-    const makeDoc = (name, mi, isExtra = false) => {
+    const makeDoc = (name, dept, mi, isExtra = false) => {
       const s = scores[mi];
       return addDoc(collection(db, 'teacher_scores'), {
         scorerName, session: session.label, subject: name,
+        dept: dept || '',
         ...(isExtra && { isExtra: true }),
         presence: s.presence, lessonDemo: s.lessonDemo,
         experience: s.experience, englishReading: s.englishReading,
@@ -496,10 +510,10 @@
     };
 
     const promises = [
-      ...session.members.map((name, mi) => makeDoc(name, mi)),
+      ...session.members.map((member, mi) => makeDoc(member.name, member.dept, mi)),
       ...extrasList.map(mi => {
         const name = document.getElementById(`extra-name-${mi}`)?.value.trim();
-        return name ? makeDoc(name, mi, true) : null;
+        return name ? makeDoc(name, '', mi, true) : null;
       }).filter(Boolean)
     ];
 

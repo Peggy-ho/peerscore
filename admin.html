@@ -208,6 +208,7 @@
           <tr>
             <th>名次</th>
             <th>姓名</th>
+            <th>科系</th>
             <th>溝通表達</th>
             <th>應變能力</th>
             <th>服務熱忱</th>
@@ -218,7 +219,7 @@
           </tr>
         </thead>
         <tbody id="v-summary-body">
-          <tr><td colspan="9"><div class="empty-state">等待評分資料…</div></td></tr>
+          <tr><td colspan="10"><div class="empty-state">等待評分資料…</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -235,6 +236,7 @@
           <tr>
             <th>評分者</th>
             <th>被評志工</th>
+            <th>科系</th>
             <th>溝通</th>
             <th>應變</th>
             <th>熱忱</th>
@@ -245,7 +247,7 @@
           </tr>
         </thead>
         <tbody id="v-raw-body">
-          <tr><td colspan="9"><div class="empty-state">尚無資料</div></td></tr>
+          <tr><td colspan="10"><div class="empty-state">尚無資料</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -280,6 +282,7 @@
           <tr>
             <th>名次</th>
             <th>姓名</th>
+            <th>科系</th>
             <th>台風特質</th>
             <th>說課表現</th>
             <th>經歷簡介</th>
@@ -289,7 +292,7 @@
           </tr>
         </thead>
         <tbody id="t-summary-body">
-          <tr><td colspan="8"><div class="empty-state">等待評分資料…</div></td></tr>
+          <tr><td colspan="9"><div class="empty-state">等待評分資料…</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -306,6 +309,7 @@
           <tr>
             <th>評分者</th>
             <th>被評教師</th>
+            <th>科系</th>
             <th>台風</th>
             <th>說課</th>
             <th>經歷</th>
@@ -315,7 +319,7 @@
           </tr>
         </thead>
         <tbody id="t-raw-body">
-          <tr><td colspan="8"><div class="empty-state">尚無資料</div></td></tr>
+          <tr><td colspan="9"><div class="empty-state">尚無資料</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -367,11 +371,12 @@
     data.forEach(row => {
       if (!row.subject) return;
       if (!map[row.subject]) {
-        map[row.subject] = { subject: row.subject, count: 0, totals: {} };
+        map[row.subject] = { subject: row.subject, dept: row.dept || '', count: 0, totals: {} };
         criteria.forEach(c => { map[row.subject].totals[c] = 0; });
         map[row.subject].totalSum = 0;
       }
       const entry = map[row.subject];
+      if (!entry.dept && row.dept) entry.dept = row.dept;
       entry.count++;
       criteria.forEach(c => { entry.totals[c] += (row[c] || 0); });
       entry.totalSum += (row.total || 0);
@@ -411,12 +416,13 @@
 
     const sbody = document.getElementById('v-summary-body');
     if (!agg.length) {
-      sbody.innerHTML = '<tr><td colspan="9"><div class="empty-state">尚無資料</div></td></tr>';
+      sbody.innerHTML = '<tr><td colspan="10"><div class="empty-state">尚無資料</div></td></tr>';
     } else {
       sbody.innerHTML = agg.map((row, i) => `
         <tr>
           <td>${rankBadge(i)}</td>
           <td><strong>${row.subject}</strong></td>
+          <td style="font-size:0.82rem;color:#94A3B8">${row.dept || '–'}</td>
           ${V_CRITERIA.map(c => `<td class="${scoreClass(row.avgs[c], 20)}">${row.avgs[c].toFixed(1)}</td>`).join('')}
           <td class="avg-total ${scoreClass(row.avgTotal, 100)}">${row.avgTotal.toFixed(1)}</td>
           <td><span class="scorers-count">${row.count} 人</span></td>
@@ -425,12 +431,13 @@
 
     const rbody = document.getElementById('v-raw-body');
     if (!data.length) {
-      rbody.innerHTML = '<tr><td colspan="9"><div class="empty-state">尚無資料</div></td></tr>';
+      rbody.innerHTML = '<tr><td colspan="10"><div class="empty-state">尚無資料</div></td></tr>';
     } else {
       rbody.innerHTML = data.map(r => `
         <tr>
           <td>${r.scorerName || '–'}</td>
           <td>${r.subject || '–'}</td>
+          <td style="font-size:0.82rem;color:#94A3B8">${r.dept || '–'}</td>
           <td>${r.communication ?? '–'}</td>
           <td>${r.adaptability ?? '–'}</td>
           <td>${r.enthusiasm ?? '–'}</td>
@@ -451,7 +458,7 @@
 
     const sbody = document.getElementById('t-summary-body');
     if (!agg.length) {
-      sbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">尚無資料</div></td></tr>';
+      sbody.innerHTML = '<tr><td colspan="9"><div class="empty-state">尚無資料</div></td></tr>';
     } else {
       sbody.innerHTML = agg.map((row, i) => {
         const factor = row.count === 1 ? 2 : 1;
@@ -461,6 +468,7 @@
         return `<tr>
           <td>${rankBadge(i)}</td>
           <td><strong>${row.subject}</strong>${normalized ? ' <span style="font-size:0.72rem;color:#F59E0B;font-weight:600;">×2</span>' : ''}</td>
+          <td style="font-size:0.82rem;color:#94A3B8">${row.dept || '–'}</td>
           ${dispCriteria.map(v => `<td class="${scoreClass(v, 10)}">${v}</td>`).join('')}
           <td class="avg-total ${scoreClass(dispTotal, 40)}">${dispTotal}</td>
           <td><span class="scorers-count">${row.count} 人</span></td>
@@ -470,12 +478,13 @@
 
     const rbody = document.getElementById('t-raw-body');
     if (!data.length) {
-      rbody.innerHTML = '<tr><td colspan="8"><div class="empty-state">尚無資料</div></td></tr>';
+      rbody.innerHTML = '<tr><td colspan="9"><div class="empty-state">尚無資料</div></td></tr>';
     } else {
       rbody.innerHTML = data.map(r => `
         <tr>
           <td>${r.scorerName || '–'}</td>
           <td>${r.subject || '–'}</td>
+          <td style="font-size:0.82rem;color:#94A3B8">${r.dept || '–'}</td>
           <td>${r.presence ?? '–'}</td>
           <td>${r.lessonDemo ?? '–'}</td>
           <td>${r.experience ?? '–'}</td>
@@ -490,9 +499,9 @@
   window.exportCSV = function(type) {
     if (type === 'volunteer') {
       const agg = aggregate(vData, V_CRITERIA);
-      const headers = ['名次', '姓名', '溝通表達', '應變能力', '服務熱忱', '時間配合度', '團隊協作', '平均總分', '評分人數'];
+      const headers = ['名次', '姓名', '科系', '溝通表達', '應變能力', '服務熱忱', '時間配合度', '團隊協作', '平均總分', '評分人數'];
       const rows = agg.map((row, i) => [
-        i + 1, row.subject,
+        i + 1, row.subject, row.dept || '',
         row.avgs.communication.toFixed(1), row.avgs.adaptability.toFixed(1),
         row.avgs.enthusiasm.toFixed(1), row.avgs.availability.toFixed(1),
         row.avgs.teamwork.toFixed(1), row.avgTotal.toFixed(1), row.count
@@ -501,11 +510,11 @@
     } else {
       const agg = aggregate(tData, T_CRITERIA)
         .sort((a, b) => (b.totalSum * (b.count === 1 ? 2 : 1)) - (a.totalSum * (a.count === 1 ? 2 : 1)));
-      const headers = ['名次', '姓名', '台風特質', '說課表現', '經歷簡介', '英文朗讀', '總分合計（標準化）', '評分人數', '是否×2'];
+      const headers = ['名次', '姓名', '科系', '台風特質', '說課表現', '經歷簡介', '英文朗讀', '總分合計（標準化）', '評分人數', '是否×2'];
       const rows = agg.map((row, i) => {
         const f = row.count === 1 ? 2 : 1;
         return [
-          i + 1, row.subject,
+          i + 1, row.subject, row.dept || '',
           row.totals.presence * f, row.totals.lessonDemo * f,
           row.totals.experience * f, row.totals.englishReading * f,
           row.totalSum * f, row.count, row.count === 1 ? '是' : '否'
@@ -517,17 +526,17 @@
 
   window.exportRawCSV = function(type) {
     if (type === 'volunteer') {
-      const headers = ['評分者', '被評志工', '溝通表達', '應變能力', '服務熱忱', '時間配合度', '團隊協作', '總分', '時間'];
+      const headers = ['評分者', '被評志工', '科系', '溝通表達', '應變能力', '服務熱忱', '時間配合度', '團隊協作', '總分', '時間'];
       const rows = vData.map(r => [
-        r.scorerName, r.subject,
+        r.scorerName, r.subject, r.dept || '',
         r.communication, r.adaptability, r.enthusiasm, r.availability, r.teamwork,
         r.total, fmtTime(r.submittedAt)
       ]);
       downloadCSV([headers, ...rows], '志工評分原始資料.csv');
     } else {
-      const headers = ['評分者', '被評教師', '台風特質', '說課表現', '經歷簡介', '英文朗讀', '總分', '時間'];
+      const headers = ['評分者', '被評教師', '科系', '台風特質', '說課表現', '經歷簡介', '英文朗讀', '總分', '時間'];
       const rows = tData.map(r => [
-        r.scorerName, r.subject,
+        r.scorerName, r.subject, r.dept || '',
         r.presence, r.lessonDemo, r.experience, r.englishReading,
         r.total, fmtTime(r.submittedAt)
       ]);
