@@ -84,6 +84,24 @@
     }
     .person-name { font-weight: 800; font-size: 1.05rem; }
     .person-dept { font-size: 0.78rem; color: #64748B; margin-top: 1px; }
+    .absent-btn {
+      padding: 3px 10px;
+      border: 1.5px solid #CBD5E1;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      background: transparent;
+      color: #94A3B8;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .absent-btn.marked {
+      background: #FEF2F2;
+      color: #EF4444;
+      border-color: #FCA5A5;
+    }
+    .person-block.absent { opacity: 0.5; background: #F8FAFC; }
+    .person-block.absent .score-btn { pointer-events: none; }
     .person-subtotal {
       margin-left: auto;
       font-size: 1.1rem;
@@ -347,10 +365,12 @@
   let scores = {};
   let extrasList = [];
   let nextMi = 0;
+  let absentSet = new Set();
 
   function renderSession(session) {
     scores = {};
     extrasList = [];
+    absentSet = new Set();
     nextMi = session.members.length;
 
     const area = document.getElementById('scoringArea');
@@ -407,7 +427,9 @@
           ? `<input type="text" class="extra-name-input" id="extra-name-${mi}" placeholder="輸入學生姓名">`
           : `<div><span class="person-name">${name}</span>${dept ? `<div class="person-dept">${dept}</div>` : ''}</div>`}
         <span class="person-subtotal" id="subtotal-${mi}">– <span>/ 20</span></span>
-        ${isExtra ? `<button type="button" class="remove-extra-btn" title="移除">✕</button>` : ''}
+        ${isExtra
+          ? `<button type="button" class="remove-extra-btn" title="移除">✕</button>`
+          : `<button type="button" class="absent-btn" id="absent-btn-${mi}">未到</button>`}
       </div>
       ${CRITERIA.map(c => `
         <div class="criteria-block" id="cb-${c.id}-${mi}">
@@ -435,7 +457,31 @@
       });
     });
 
+    if (!isExtra) {
+      block.querySelector(`#absent-btn-${mi}`).addEventListener('click', () => toggleAbsent(mi, session));
+    }
     return block;
+  }
+
+  function toggleAbsent(mi, session) {
+    const block = document.getElementById(`person-${mi}`);
+    const btn = document.getElementById(`absent-btn-${mi}`);
+    if (absentSet.has(mi)) {
+      absentSet.delete(mi);
+      btn.textContent = '未到';
+      btn.classList.remove('marked');
+      block.classList.remove('absent');
+    } else {
+      absentSet.add(mi);
+      btn.textContent = '缺席 ✓';
+      btn.classList.add('marked');
+      block.classList.add('absent');
+      scores[mi] = {};
+      CRITERIA.forEach(c => { scores[mi][c.id] = 0; });
+      block.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+    }
+    updateSubtotal(mi);
+    updateSummary(session);
   }
 
   function getPersonTotal(mi) {
@@ -447,8 +493,9 @@
   }
 
   function updateSubtotal(mi) {
-    const total = getPersonTotal(mi);
-    document.getElementById(`subtotal-${mi}`).innerHTML = `${total} <span>/ 20</span>`;
+    const el = document.getElementById(`subtotal-${mi}`);
+    if (absentSet.has(mi)) { el.innerHTML = '<span style="color:#EF4444;font-size:0.85rem">未到</span>'; return; }
+    el.innerHTML = `${getPersonTotal(mi)} <span>/ 20</span>`;
   }
 
   function updateSummary(session) {
@@ -460,6 +507,7 @@
       }).filter(p => p.name)
     ];
     document.getElementById('summaryRows').innerHTML = allPersons.map(({ name, mi }) => {
+      if (absentSet.has(mi)) return `<div class="total-summary-row"><span class="name">${name}</span><span class="score" style="color:#EF4444">未到</span></div>`;
       const filled = allFilledTeacher(mi);
       return `<div class="total-summary-row">
         <span class="name">${name}</span>
@@ -485,7 +533,7 @@
         hasError = true;
       }
     };
-    session.members.forEach((_, mi) => validate(mi));
+    session.members.forEach((_, mi) => { if (!absentSet.has(mi)) validate(mi); });
     extrasList.forEach(mi => {
       if (document.getElementById(`extra-name-${mi}`)?.value.trim()) validate(mi);
     });
@@ -510,7 +558,7 @@
     };
 
     const promises = [
-      ...session.members.map((member, mi) => makeDoc(member.name, member.dept, mi)),
+      ...session.members.map((member, mi) => absentSet.has(mi) ? null : makeDoc(member.name, member.dept, mi)).filter(Boolean),
       ...extrasList.map(mi => {
         const name = document.getElementById(`extra-name-${mi}`)?.value.trim();
         return name ? makeDoc(name, '', mi, true) : null;
